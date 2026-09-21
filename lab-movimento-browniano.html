@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratório: Movimento Browniano — QuantTrainer</title>
+<meta name="description" content="Simulação interativa e gratuita do movimento browniano: trajetórias ao vivo e a escala raiz-do-tempo que governa a volatilidade.">
+<link rel="canonical" href="https://quanttrainer.com.br/lab-movimento-browniano.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="QuantTrainer">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Laboratório: Movimento Browniano">
+<meta property="og:description" content="Simulação gratuita e interativa do movimento browniano, com trajetórias ao vivo e a escala raiz do tempo que governa a volatilidade.">
+<meta property="og:url" content="https://quanttrainer.com.br/lab-movimento-browniano.html">
+<meta property="og:image" content="https://quanttrainer.com.br/og-capa.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--border:#2d3646;--text:#e6edf3;--muted:#8b98a9;--accent:#4ea8ff;--accent2:#9d7bff;--gold:#e3b341;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.65;}
+  a{color:var(--accent);text-decoration:none;}
+  .wrap{max-width:780px;margin:0 auto;padding:0 20px;}
+  header{padding:16px 0;border-bottom:1px solid var(--border);}
+  .logo{font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  h1{font-size:1.7rem;margin:34px 0 10px;}
+  .sub{color:var(--muted);margin-bottom:24px;}
+  canvas{width:100%;border-radius:10px;background:#0a0e14;display:block;border:1px solid var(--border);}
+  .controls{display:flex;gap:14px;align-items:center;margin:14px 0 30px;flex-wrap:wrap;font-size:.88rem;color:var(--muted);}
+  .controls button{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;}
+  .controls button:hover{border-color:var(--accent);}
+  .controls input[type=range]{accent-color:var(--accent);}
+  .explain{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:20px 24px;margin-bottom:26px;font-size:.94rem;}
+  .explain h2{font-size:1rem;margin-bottom:10px;color:var(--accent);}
+  .explain p{margin-bottom:10px;color:var(--text);}
+  .cta-box{background:var(--panel);border:1px solid var(--accent2);border-radius:12px;padding:20px 24px;text-align:center;margin:34px 0 50px;}
+  .cta-box p{font-size:.9rem;color:var(--muted);margin-bottom:12px;}
+  .cta-box a{display:inline-block;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;padding:11px 26px;border-radius:10px;font-weight:600;font-size:.95rem;}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="logo" href="index.html">QuantTrainer</a></div></header>
+<div class="wrap">
+  <h1>📈 Laboratório: Movimento Browniano</h1>
+  <p class="sub">Cada linha azul é uma trajetória do processo que está por trás de todo modelo de preços em tempo contínuo — do Black–Scholes aos motores de risco dos grandes fundos.</p>
+  <canvas id="cv" width="740" height="320"></canvas>
+  <div class="controls">
+    <button id="btn">🎲 Nova simulação</button>
+    <label>Trajetórias: <b id="npv">20</b></label>
+    <input type="range" id="np" min="5" max="60" step="5" value="20">
+    <span>faixa dourada: ±2√t</span>
+  </div>
+  <div class="explain">
+    <h2>O que você está vendo</h2>
+    <p>O movimento browniano W(t) é o limite de um passeio aleatório com passos cada vez menores e mais frequentes. Três propriedades o definem: começa em zero, tem incrementos independentes, e cada incremento segue uma normal com variância igual ao tempo decorrido: W(t) ~ N(0, t).</p>
+    <p>A faixa dourada tracejada marca ±2√t. Repare: as trajetórias se espalham com a <b>raiz</b> do tempo, não com o tempo. É exatamente por isso que a volatilidade anual é a diária multiplicada por √252 ≈ 15,9 — a famosa escala raiz-do-tempo do mercado.</p>
+    <p>Aperte "nova simulação" algumas vezes: cada conjunto de caminhos é diferente, mas o envelope estatístico é sempre o mesmo. O caos individual obedece a uma ordem coletiva — essa tensão é o coração do cálculo estocástico.</p>
+  </div>
+  <div class="cta-box">
+    <p>Este laboratório faz parte do <b>QuantTrainer</b> — a trilha de matemática de quant trading em português: do nivelamento ao lema de Itô e às EDPs, com aulas gamificadas e 200+ exercícios resolvidos.</p>
+    <a href="index.html">Conhecer o curso →</a>
+  </div>
+</div>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const N=500, W=740, H=320, ymax=3;
+const X = i => i/N*W, Y = v => H/2 - v/ymax*(H/2);
+function gauss(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function draw(){
+  const P = parseInt(document.getElementById('np').value,10);
+  document.getElementById('npv').textContent = P;
+  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#22293a'; ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+  ctx.strokeStyle='#e3b341'; ctx.setLineDash([5,5]); ctx.lineWidth=1.5;
+  [1,-1].forEach(s=>{ ctx.beginPath();
+    for(let i=0;i<=N;i++){ const y=Y(s*2*Math.sqrt(i/N)); if(i===0) ctx.moveTo(X(i),y); else ctx.lineTo(X(i),y); }
+    ctx.stroke(); });
+  ctx.setLineDash([]); ctx.lineWidth=1;
+  const dt=1/N, sq=Math.sqrt(dt);
+  ctx.strokeStyle='rgba(78,168,255,0.35)';
+  for(let p=0;p<P;p++){ let v=0; ctx.beginPath(); ctx.moveTo(0,Y(0));
+    for(let i=1;i<=N;i++){ v += sq*gauss(); ctx.lineTo(X(i),Y(v)); }
+    ctx.stroke(); }
+}
+document.getElementById('btn').onclick = draw;
+document.getElementById('np').oninput = draw;
+draw();
+</script>
+</body>
+</html>
